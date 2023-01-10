@@ -1,13 +1,14 @@
 const API = require('../config/API')
-const Auth = async ({ token }: { token: string }) => {
+const authorizeToken = async ({ token }: { token: string }): Promise<Boolean> => {
     try {
         const res = await API.get('/api/me', {
             Headers: {
-                Authorization: token
+                Authorization: `Bearer ${token}`
             }
         })
         if (res.status == 200)
             return true
+        return false
     }
     catch (err) {
         return false
@@ -15,5 +16,5 @@ const Auth = async ({ token }: { token: string }) => {
 }
 
 module.exports = {
-    Auth
+    authorizeToken
 }

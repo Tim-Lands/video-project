@@ -20,6 +20,17 @@ app.get('/', (req, res) => {
 	res.send('Running');
 });
 
+io.use(async (socket: Socket, next: Function) => {
+	console.log(socket?.handshake?.query);
+
+	const token: any = socket?.handshake?.query.token;
+	const isAuthorized = token ? await authorizeToken({ token }) : false;
+	if (isAuthorized)
+		next();
+	else
+		next(new Error("Authentication error"));
+});
+
 io.on("connection", (socket: Socket) => {
 	socket.emit("me", socket.id);
 	socket.on("disconnect", () => {
