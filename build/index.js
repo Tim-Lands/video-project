@@ -1,6 +1,12 @@
 "use strict";
-const app = require("express")();
-const server = require("http").createServer(app);
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const httpServer = require('http');
+const app = (0, express_1.default)();
+const server = httpServer.createServer(app);
 const cors = require("cors");
 const io = require("socket.io")(server, {
     cors: {

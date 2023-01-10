@@ -12,7 +12,9 @@ const API = require('../config/API');
 const Auth = ({ token }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const res = yield API.get('/api/me', {
-            Headers: {}
+            Headers: {
+                Authorization: token
+            }
         });
         if (res.status == 200)
             return true;
