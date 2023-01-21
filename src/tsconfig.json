@@ -6,13 +6,14 @@
     "module": "commonjs",                    
     "lib": ["es6"],                     
     "allowJs": true,
-    "outDir": "../build",                          
+    "outDir": "./build",                          
     "rootDir": "./",
     "strict": true,         
     "noImplicitAny": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "types":["node", "express"],
-    "typeRoots": [ "../node_modules/@types" ]
+    "typeRoots": [ "./node_modules/@types" ],
+    "skipLibCheck": true
   },
 }
