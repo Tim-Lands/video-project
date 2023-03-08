@@ -25,10 +25,10 @@ app.use('/sfu/:room', express.static(path.join(dirname, 'public')))
 /* const options = {
 	key: fs.readFileSync('./server/ssl/key.pem', 'utf-8'),
 	cert: fs.readFileSync('./server/ssl/cert.pem', 'utf-8')
-} */
-const io = new Server(httpServer)
+} */ 
+const io = new Server(server,{cors:{origin:'*'}})
 
-// socket.io namespace (could represent a room?)
+// socket.io namespace (could represent a room?) 
 const connections = io.of('/mediasoup')
 
 /**
@@ -410,7 +410,7 @@ connections.on('connection', async socket => {
 	socket.on('consumer-resume', async ({ serverConsumerId }) => {
 		console.log('consumer resume')
 		const consumer :any = consumers.find(consumerData => consumerData.consumer.id === serverConsumerId)
-		await consumer.resume()
+		await consumer.consumer.resume()
 	})
 })
 
@@ -422,7 +422,6 @@ const createWebRtcTransport = async (router:Router) => {
 				listenIps: [
 					{
 						ip: '0.0.0.0', // replace with relevant IP address
-						announcedIp: '10.0.0.115',
 					}
 				],
 				enableUdp: true,
@@ -451,4 +450,4 @@ const createWebRtcTransport = async (router:Router) => {
 		}
 	})
 }
-server.listen(3000, () => console.log(`Server is running on port ${3000}`));
+server.listen(5000, () => console.log(`Server is running on port ${5000}`));
