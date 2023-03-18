@@ -1,7 +1,7 @@
-export class BaseModel<t> {
-  dataSource: any[];
-  async create(data: t) {
-    this.dataSource.push(data);
+export class BaseModel<t extends any> {
+  dataSource: any[] = [];
+  async create(data: any) {
+    this.dataSource[data.socketId] = data;
   }
 
   async deleteById(id: any) {
@@ -10,5 +10,20 @@ export class BaseModel<t> {
 
   async findOne(id: any) {
     this.dataSource.find((data) => data.id == id);
+  }
+
+  async removeAndCloseItemOfSocket(socketId: string, type: string = "") {
+    this.dataSource.forEach((item) => {
+      if (item.socketId === socketId) {
+        item[type].close();
+      }
+    });
+    this.dataSource = this.dataSource.filter(
+      (item) => item.socketId !== socketId
+    );
+  }
+
+  async findAll() {
+    return this.dataSource;
   }
 }

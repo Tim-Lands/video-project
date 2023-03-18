@@ -55,7 +55,7 @@ const connections = io.of("/mediasoup");
  **/
 const sfuClient = new SFUClient();
 sfuClient.createAndGetWorker().then((worker: Worker) => {
-   // { socketId1: { roomName1, socket, transports = [id1, id2,] }, producers = [id1, id2,] }, consumers = [id1, id2,], peerDetails }, ...}
+  // { socketId1: { roomName1, socket, transports = [id1, id2,] }, producers = [id1, id2,] }, consumers = [id1, id2,], peerDetails }, ...}
   // [ { socketId1, roomName1, transport, consumer }, ... ]
   // [ { socketId1, roomName1, producer, }, ... ]
   // [ { socketId1, roomName1, consumer, }, ... ]
@@ -130,8 +130,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       callback({ rtpCapabilities });
     });
 
-   
-
     // socket.on('createRoom', async (callback) => {
     //   if (router === undefined) {
     //     // worker.createRouter(options)
@@ -155,47 +153,21 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
     // Client emits a request to create server side Transport
     // We need to differentiate between the producer and consumer transports
     socket.on("createWebRtcTransport", async ({ consumer }, callback) => {
-      // get Room Name from Peer's properties
-      const roomName = sfuClient.peers[socket.id].roomName;
-
-      // get Router (Room) object this peer is in based on RoomName
-      const router = sfuClient.rooms[roomName].router;
-
-      createWebRtcTransport(router).then(
-        (transport) => {
-          callback({
-            params: {
-              id: transport.id,
-              iceParameters: transport.iceParameters,
-              iceCandidates: transport.iceCandidates,
-              dtlsParameters: transport.dtlsParameters,
-            },
-          });
-
-          // add transport to Peer's properties
-          addTransport(transport, roomName, consumer);
-        },
-        (error) => {
-          console.log(error);
-        }
+      const transport = await sfuClient.createWebRtcTransport(
+        socket.id,
+        consumer
       );
+      callback({
+        params: {
+          id: transport.id,
+          iceParameters: transport.iceParameters,
+          iceCandidates: transport.iceCandidates,
+          dtlsParameters: transport.dtlsParameters,
+        },
+      });
+    
     });
 
-    const addTransport = (
-      transport: WebRtcTransport,
-      roomName: string,
-      consumer: Consumer
-    ) => {
-      sfuClient.transports = [
-        ...sfuClient.transports,
-        { socketId: socket.id, transport, roomName, consumer },
-      ];
-
-      sfuClient.peers[socket.id] = {
-        ...sfuClient.peers[socket.id],
-        transports: [...sfuClient.peers[socket.id].transports, transport.id],
-      };
-    };
 
     const addProducer = (producer: Producer, roomName: string) => {
       sfuClient.producers = [

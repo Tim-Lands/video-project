@@ -7,27 +7,17 @@ import {
   Consumer,
   RtpCodecCapability,
 } from "mediasoup/node/lib/types";
-
+import { ConsumerModel } from "../data/models/Consumer";
+import { ProducerModel } from "../data/models/Producer";
+import { TransportModel } from "../data/models/Transport";
+import { RoomModel } from "../data/models/Room";
 export class SFUClient {
-  public worker?: Worker ;
-  public rooms: any[] = [];
+  public worker?: Worker;
   public peers: any = {};
-  public producers: {
-    socketId: string;
-    roomName: string;
-    producer: Producer;
-  }[] = [];
-  public consumers: {
-    socketId: string;
-    roomName: string;
-    consumer: Consumer;
-  }[] = [];
-  public transports: Array<{
-    socketId: string;
-    roomName: string;
-    transport: WebRtcTransport;
-    consumer: Consumer;
-  }> = [];
+  public roomModel: RoomModel = new RoomModel();
+  consumerModel: ConsumerModel = new ConsumerModel();
+  producerModel: ProducerModel = new ProducerModel();
+  transportModel: TransportModel = new TransportModel();
   public mediaCodecs: Array<RtpCodecCapability>;
 
   constructor() {
@@ -65,71 +55,79 @@ export class SFUClient {
     return worker;
   }
 
-  removeItemsOfSocket(items: Array<any>, socketId: string, type: string) {
-    items.forEach((item) => {
-      if (item.socketId === socketId) {
-        item[type].close();
-      }
-    });
-    items = items.filter((item) => item.socketId !== socketId);
-
-    return items;
-  }
-
   removeProducersOfSocket(socketId: string) {
-    this.producers = this.removeItemsOfSocket(
-      this.producers,
-      socketId,
-      "producer"
-    );
+    this.producerModel.removeAndCloseItemOfSocket(socketId);
   }
 
   removeConsumersOfSocket(socketId: string) {
-    this.consumers = this.removeItemsOfSocket(
-      this.consumers,
-      socketId,
-      "consumer"
-    );
+    this.consumerModel.removeAndCloseItemOfSocket(socketId);
   }
 
   removeTransportsOfSocket(socketId: string) {
-    this.consumers = this.removeItemsOfSocket(
-      this.transports,
-      socketId,
-      "transport"
-    );
+    this.transportModel.removeAndCloseItemOfSocket(socketId);
   }
 
   removeSocketFromRoom(roomName: any, socket_id: string) {
-    this.rooms[roomName] = {
-      router: this.rooms[roomName].router,
-      peers: this.rooms[roomName].peers.filter(
-        (socketId: string) => socketId !== socket_id
-      ),
-    };
+    this.roomModel.removePeerFromRoom(socket_id, roomName);
   }
 
   async createRoom(roomName: any, socketId: string) {
     let router1;
     let peers = [];
-    if (this.rooms[roomName]) {
-      router1 = this.rooms[roomName].router;
-      peers = this.rooms[roomName].peers || [];
+    let room = await this.roomModel.findOneByRoomName(roomName);
+    if (room) {
+      router1 = room.router;
+      peers = room.peers || [];
     } else {
       router1 = await this.worker?.createRouter({
         mediaCodecs: this.mediaCodecs,
       });
     }
+    room = { router: router1, peers: [...peers, socketId] };
+    this.roomModel.updateOneByRoomName(roomName, room);
+    return router1;
+  }
 
-    console.log(`Router ID: ${router1.id}`, peers.length);
-
-    this.rooms[roomName] = {
-      router: router1,
-      peers: [...peers, socketId],
+  async createWebRtcTransport(socketId: any, consumer: any) {
+    const roomName = this.peers[socketId].roomName;
+    const room = await this.roomModel.findOneByRoomName(roomName);
+    const router = room.router;
+    // https://mediasoup.org/documentation/v3/mediasoup/api/#WebRtcTransportOptions
+    const webRtcTransport_options = {
+      listenIps: [
+        {
+          ip: "0.0.0.0", // replace with relevant IP address
+          announcedIp: "192.168.1.3",
+        },
+      ],
+      enableUdp: true,
+      enableTcp: true,
+      preferUdp: true,
     };
 
-    
+    // https://mediasoup.org/documentation/v3/mediasoup/api/#router-createWebRtcTransport
+    let transport: WebRtcTransport = await router.createWebRtcTransport(
+      webRtcTransport_options
+    );
+    console.log(`transport id: ${transport.id}`);
 
-    return router1;
+    transport.on("dtlsstatechange", (dtlsState: any) => {
+      if (dtlsState === "closed") {
+        transport.close();
+      }
+    });
+
+    transport.on("@close", () => {
+      console.log("transport closed");
+    });
+
+    this.transportModel.create({
+      transport,
+      socketId,
+      roomName,
+      consumer,
+    });
+
+    return transport;
   }
 }
