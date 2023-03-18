@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig to read more about this file */
-
-    "target": "es2016",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+    "target": "ES2021",
+    "moduleResolution": "node16",
     "module": "commonjs",                    
     "lib": ["es6"],                     
     "allowJs": true,

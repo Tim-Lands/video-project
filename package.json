@@ -1,5 +1,5 @@
 {
-  "dependencies": {
-    "mediasoup": "^3.11.4"
+  "devDependencies": {
+    "@types/node": "^18.15.3"
   }
 }

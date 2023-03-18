@@ -86,10 +86,10 @@ const getLocalStream = () => {
       }
     }
   })
-  .then(streamSuccess)
-  .catch(error => {
-    console.log(error.message)
-  })
+    .then(streamSuccess)
+    .catch(error => {
+      console.log(error.message)
+    })
 }
 
 // A device is an endpoint connecting to a Router on the
@@ -188,7 +188,7 @@ const connectSendTransport = async () => {
   // to send media to the Router
   // https://mediasoup.org/documentation/v3/mediasoup-client/api/#transport-produce
   // this action will trigger the 'connect' and 'produce' events above
-  
+
   audioProducer = await producerTransport.produce(audioParams);
   videoProducer = await producerTransport.produce(videoParams);
 
@@ -203,7 +203,7 @@ const connectSendTransport = async () => {
 
     // close audio track
   })
-  
+
   videoProducer.on('trackended', () => {
     console.log('video track ended')
 
@@ -229,7 +229,7 @@ const signalNewConsumerTransport = async (remoteProducerId) => {
       console.log(params.error)
       return
     }
-    console.log(`PARAMS... ${params}`)
+    console.log(`PARAMS...`, params)
 
     let consumerTransport
     try {
@@ -289,7 +289,7 @@ const connectRecvTransport = async (consumerTransport, remoteProducerId, serverC
       return
     }
 
-    console.log(`Consumer Params ${params}`)
+    console.log(`Consumer Params`, params)
     // then consume with the local consumer transport
     // which creates a consumer
     const consumer = await consumerTransport.consume({
@@ -326,7 +326,7 @@ const connectRecvTransport = async (consumerTransport, remoteProducerId, serverC
 
     // destructure and retrieve the video track from the producer
     const { track } = consumer
-
+    console.log('track is as following, ', track)
     document.getElementById(remoteProducerId).srcObject = new MediaStream([track])
 
     // the server consumer started with media paused
