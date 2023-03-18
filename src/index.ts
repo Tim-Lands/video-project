@@ -414,7 +414,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
           listenIps: [
             {
               ip: "0.0.0.0", // replace with relevant IP address
-              announcedIp: "172.22.48.1",
+              announcedIp: "192.168.1.3",
             },
           ],
           enableUdp: true,

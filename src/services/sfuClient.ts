@@ -128,6 +128,8 @@ export class SFUClient {
       peers: [...peers, socketId],
     };
 
+    
+
     return router1;
   }
 }
