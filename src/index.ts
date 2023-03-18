@@ -55,7 +55,7 @@ const connections = io.of("/mediasoup");
  **/
 const sfuClient = new SFUClient();
 sfuClient.createAndGetWorker().then((worker: Worker) => {
-  let peers: any = {}; // { socketId1: { roomName1, socket, transports = [id1, id2,] }, producers = [id1, id2,] }, consumers = [id1, id2,], peerDetails }, ...}
+   // { socketId1: { roomName1, socket, transports = [id1, id2,] }, producers = [id1, id2,] }, consumers = [id1, id2,], peerDetails }, ...}
   // [ { socketId1, roomName1, transport, consumer }, ... ]
   // [ { socketId1, roomName1, producer, }, ... ]
   // [ { socketId1, roomName1, consumer, }, ... ]
@@ -92,8 +92,8 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       sfuClient.removeProducersOfSocket(socket.id);
       sfuClient.removeTransportsOfSocket(socket.id);
 
-      const { roomName } = peers[socket.id];
-      delete peers[socket.id];
+      const { roomName } = sfuClient.peers[socket.id];
+      delete sfuClient.peers[socket.id];
 
       // remove socket from room
       sfuClient.removeSocketFromRoom(roomName, socket.id);
@@ -111,7 +111,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
 		} */
       const router1 = await sfuClient.createRoom(roomName, socket.id);
 
-      peers[socket.id] = {
+      sfuClient.peers[socket.id] = {
         socket,
         roomName, // Name for the Router this Peer joined
         transports: [],
@@ -156,7 +156,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
     // We need to differentiate between the producer and consumer transports
     socket.on("createWebRtcTransport", async ({ consumer }, callback) => {
       // get Room Name from Peer's properties
-      const roomName = peers[socket.id].roomName;
+      const roomName = sfuClient.peers[socket.id].roomName;
 
       // get Router (Room) object this peer is in based on RoomName
       const router = sfuClient.rooms[roomName].router;
@@ -191,9 +191,9 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
         { socketId: socket.id, transport, roomName, consumer },
       ];
 
-      peers[socket.id] = {
-        ...peers[socket.id],
-        transports: [...peers[socket.id].transports, transport.id],
+      sfuClient.peers[socket.id] = {
+        ...sfuClient.peers[socket.id],
+        transports: [...sfuClient.peers[socket.id].transports, transport.id],
       };
     };
 
@@ -203,9 +203,9 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
         { socketId: socket.id, producer, roomName },
       ];
 
-      peers[socket.id] = {
-        ...peers[socket.id],
-        producers: [...peers[socket.id].producers, producer.id],
+      sfuClient.peers[socket.id] = {
+        ...sfuClient.peers[socket.id],
+        producers: [...sfuClient.peers[socket.id].producers, producer.id],
       };
     };
 
@@ -217,15 +217,15 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       ];
 
       // add the consumer id to the peers list
-      peers[socket.id] = {
-        ...peers[socket.id],
-        consumers: [...peers[socket.id].consumers, consumer.id],
+      sfuClient.peers[socket.id] = {
+        ...sfuClient.peers[socket.id],
+        consumers: [...sfuClient.peers[socket.id].consumers, consumer.id],
       };
     };
 
     socket.on("getProducers", (callback) => {
       //return all producer transports
-      const { roomName } = peers[socket.id];
+      const { roomName } = sfuClient.peers[socket.id];
 
       let producerList: string[] = [];
       sfuClient.producers.forEach((producerData) => {
@@ -254,7 +254,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
           producerData.socketId !== socketId &&
           producerData.roomName === roomName
         ) {
-          const producerSocket = peers[producerData.socketId].socket;
+          const producerSocket = sfuClient.peers[producerData.socketId].socket;
           // use socket to send producer id to producer
           producerSocket.emit("new-producer", { producerId: id });
         }
@@ -286,7 +286,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
         });
 
         // add producer to the producers array
-        const { roomName } = peers[socket.id];
+        const { roomName } = sfuClient.peers[socket.id];
 
         addProducer(producer, roomName);
 
@@ -329,7 +329,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
         callback
       ) => {
         try {
-          const { roomName } = peers[socket.id];
+          const { roomName } = sfuClient.peers[socket.id];
           const router = sfuClient.rooms[roomName].router;
           let consumerTransport = sfuClient.transports.find(
             (transportData) =>

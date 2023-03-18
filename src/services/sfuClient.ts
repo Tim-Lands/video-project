@@ -11,6 +11,7 @@ import {
 export class SFUClient {
   public worker?: Worker ;
   public rooms: any[] = [];
+  public peers: any = {};
   public producers: {
     socketId: string;
     roomName: string;
