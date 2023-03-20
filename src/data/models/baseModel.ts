@@ -8,7 +8,7 @@ export class BaseModel<t extends any> {
     this.dataSource.filter((data) => data.id != id);
   }
 
-  async findOne(id: any) {
+  async findOneById(id: any): Promise<any> {
     this.dataSource.find((data) => data.id == id);
   }
 

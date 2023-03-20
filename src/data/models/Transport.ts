@@ -1,6 +1,7 @@
 import { Consumer } from "mediasoup/node/lib/Consumer";
 import { WebRtcTransport } from "mediasoup/node/lib/WebRtcTransport";
 import { BaseModel } from "./baseModel";
+import { Transport } from "mediasoup/node/lib/Transport";
 export interface TransportAttributes {
   socketId: string;
   roomName: string;
@@ -17,7 +18,27 @@ export class TransportModel extends BaseModel<any[]> {
 
   async findBySocketIdWhereNotConsumer(socketId: string) {
     return this.dataSource.find(
-      (transport) => transport.socketId === socketId && !transport.consumer
+      (transportData) =>
+        transportData.socketId === socketId && !transportData.consumer
+    );
+  }
+
+  async findConsumerTransportById(id: string) {
+    return this.dataSource.find(
+      (transportData) =>
+        transportData.consumer && transportData.transport.id == id
+    )?.transport;
+  }
+
+  async findOneById(id: any): Promise<Transport> {
+    return this.dataSource.find(
+      (transportData) => transportData.transport.id == id
+    );
+  }
+
+  async deleteById(id: any): Promise<void> {
+    this.dataSource = this.dataSource.filter(
+      (transportData) => transportData.transport.id == id
     );
   }
 }

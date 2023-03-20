@@ -167,7 +167,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       });
     });
 
-
     const addConsumer = (consumer: Consumer, roomName: string) => {
       // add the consumer to the consumers list
       sfuClient.consumers = [
@@ -255,63 +254,39 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
         callback
       ) => {
         try {
-          const { roomName } = sfuClient.peers[socket.id];
-          const router = sfuClient.rooms[roomName].router;
-          let consumerTransport = sfuClient.transports.find(
-            (transportData) =>
-              transportData.consumer &&
-              transportData.transport.id == serverConsumerTransportId
-          )?.transport;
-          if (!consumerTransport) return;
+          const consumerData = await sfuClient.consume(
+            socket.id,
+            serverConsumerTransportId,
+            rtpCapabilities,
+            remoteProducerId
+          );
+          if (!consumerData) return;
+          const { consumer, consumerTransport } = consumerData;
+          consumer.on("transportclose", () => {
+            console.log("transport close from consumer");
+          });
 
-          // check if the router can consume the specified producer
-          if (
-            router.canConsume({
-              producerId: remoteProducerId,
-              rtpCapabilities,
-            })
-          ) {
-            // transport can now consume and return a consumer
-            const consumer = await consumerTransport.consume({
-              producerId: remoteProducerId,
-              rtpCapabilities,
-              paused: true,
-            });
+          consumer.on("producerclose", () => {
+            console.log("producer of consumer closed");
+            socket.emit("producer-closed", { remoteProducerId });
+            consumerTransport.close();
+            sfuClient.removeTransport(consumerTransport?.id);
+            consumer.close();
+            sfuClient.removeConsumer(consumer.id)
+          });
 
-            consumer.on("transportclose", () => {
-              console.log("transport close from consumer");
-            });
+          // from the consumer extract the following params
+          // to send back to the Client
+          const params = {
+            id: consumer.id,
+            producerId: remoteProducerId,
+            kind: consumer.kind,
+            rtpParameters: consumer.rtpParameters,
+            serverConsumerId: consumer.id,
+          };
 
-            consumer.on("producerclose", () => {
-              console.log("producer of consumer closed");
-              socket.emit("producer-closed", { remoteProducerId });
-
-              consumerTransport?.close();
-              sfuClient.transports = sfuClient.transports.filter(
-                (transportData) =>
-                  transportData.transport.id !== consumerTransport?.id
-              );
-              consumer.close();
-              sfuClient.consumers = sfuClient.consumers.filter(
-                (consumerData) => consumerData.consumer.id !== consumer.id
-              );
-            });
-
-            addConsumer(consumer, roomName);
-
-            // from the consumer extract the following params
-            // to send back to the Client
-            const params = {
-              id: consumer.id,
-              producerId: remoteProducerId,
-              kind: consumer.kind,
-              rtpParameters: consumer.rtpParameters,
-              serverConsumerId: consumer.id,
-            };
-
-            // send the parameters to the client
-            callback({ params });
-          }
+          // send the parameters to the client
+          callback({ params });
         } catch (error: any) {
           console.log(error.message);
           callback({

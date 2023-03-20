@@ -71,6 +71,14 @@ export class SFUClient {
     this.roomModel.removePeerFromRoom(socket_id, roomName);
   }
 
+  async removeTransport(id: any) {
+    this.transportModel.deleteById(id);
+  }
+
+  async removeConsumer(id: any) {
+    this.consumerModel.deleteById(id);
+  }
+
   async getProducersCount() {
     return this.producerModel.count();
   }
@@ -97,6 +105,40 @@ export class SFUClient {
       producer.close();
     });
     return producer.id;
+  }
+
+  async consume(
+    socketId: string,
+    serverConsumerTransportId: string,
+    rtpCapabilities: any,
+    remoteProducerId: any
+  ) {
+    const { roomName } = this.peers[socketId];
+    const room = await this.roomModel.findOneByRoomName(roomName);
+    const router = room.router;
+    const consumerTransport =
+      await this.transportModel.findConsumerTransportById(
+        serverConsumerTransportId
+      );
+
+    if (!consumerTransport) return;
+
+    // check if the router can consume the specified producer
+    if (
+      router.canConsume({
+        producerId: remoteProducerId,
+        rtpCapabilities,
+      })
+    ) {
+      // transport can now consume and return a consumer
+      const consumer = await consumerTransport.consume({
+        producerId: remoteProducerId,
+        rtpCapabilities,
+        paused: true,
+      });
+      this.consumerModel.create({ socketId, consumer, roomName });
+      return { consumer, consumerTransport };
+    }
   }
 
   async informConsumers(roomName: string, socketId: string, id: string) {
