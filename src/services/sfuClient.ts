@@ -55,20 +55,62 @@ export class SFUClient {
     return worker;
   }
 
-  removeProducersOfSocket(socketId: string) {
+  async removeProducersOfSocket(socketId: string) {
     this.producerModel.removeAndCloseItemOfSocket(socketId);
   }
 
-  removeConsumersOfSocket(socketId: string) {
+  async removeConsumersOfSocket(socketId: string) {
     this.consumerModel.removeAndCloseItemOfSocket(socketId);
   }
 
-  removeTransportsOfSocket(socketId: string) {
+  async removeTransportsOfSocket(socketId: string) {
     this.transportModel.removeAndCloseItemOfSocket(socketId);
   }
 
-  removeSocketFromRoom(roomName: any, socket_id: string) {
+  async removeSocketFromRoom(roomName: any, socket_id: string) {
     this.roomModel.removePeerFromRoom(socket_id, roomName);
+  }
+
+  async getProducersCount() {
+    return this.producerModel.count();
+  }
+
+  async transportProduce(socketId: string, kind: any, rtpParameters: any) {
+    const transporter =
+      await this.transportModel.findBySocketIdWhereNotConsumer(socketId);
+
+    const producer = await transporter.produce({ kind, rtpParameters });
+    // add producer to the producers array
+    const { roomName } = this.peers[socketId];
+
+    await this.producerModel.create({ socketId, producer, roomName });
+    this.peers[socketId] = {
+      ...this.peers[socketId],
+      producers: [...this.peers[socketId].producers, producer.id],
+    };
+    this.informConsumers(roomName, socketId, producer.id);
+
+    console.log("Producer ID: ", producer.id, producer.kind);
+
+    producer.on("transportclose", () => {
+      console.log("transport for this producer closed ");
+      producer.close();
+    });
+    return producer.id;
+  }
+
+  async informConsumers(roomName: string, socketId: string, id: string) {
+    console.log(`just joined, id ${id} ${roomName}, ${socketId}`);
+    // A new producer just joined
+    // let all consumers to consume this producer
+    const producersInRoom =
+      await this.producerModel.findAllProducersInRoomByRoomname(roomName);
+    producersInRoom
+      .filter((producer: any) => producer.socketId != socketId)
+      .map((producer) => this.peers[producer.socketId].socket)
+      .forEach((producerSocket) =>
+        producerSocket.emit("nwe-producer", { producerId: id })
+      );
   }
 
   async createRoom(roomName: any, socketId: string) {

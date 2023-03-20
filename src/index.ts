@@ -165,21 +165,8 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
           dtlsParameters: transport.dtlsParameters,
         },
       });
-    
     });
 
-
-    const addProducer = (producer: Producer, roomName: string) => {
-      sfuClient.producers = [
-        ...sfuClient.producers,
-        { socketId: socket.id, producer, roomName },
-      ];
-
-      sfuClient.peers[socket.id] = {
-        ...sfuClient.peers[socket.id],
-        producers: [...sfuClient.peers[socket.id].producers, producer.id],
-      };
-    };
 
     const addConsumer = (consumer: Consumer, roomName: string) => {
       // add the consumer to the consumers list
@@ -213,26 +200,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       callback(producerList);
     });
 
-    const informConsumers = (
-      roomName: string,
-      socketId: string,
-      id: string
-    ) => {
-      console.log(`just joined, id ${id} ${roomName}, ${socketId}`);
-      // A new producer just joined
-      // let all consumers to consume this producer
-      sfuClient.producers.forEach((producerData) => {
-        if (
-          producerData.socketId !== socketId &&
-          producerData.roomName === roomName
-        ) {
-          const producerSocket = sfuClient.peers[producerData.socketId].socket;
-          // use socket to send producer id to producer
-          producerSocket.emit("new-producer", { producerId: id });
-        }
-      });
-    };
-
     const getTransport = (socketId: string) => {
       const [producerTransport] = sfuClient.transports.filter(
         (transport) => transport.socketId === socketId && !transport.consumer
@@ -252,29 +219,16 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       "transport-produce",
       async ({ kind, rtpParameters, appData }, callback) => {
         // call produce based on the prameters from the client
-        const producer = await getTransport(socket.id).produce({
+        const producer_id = await sfuClient.transportProduce(
+          socket.id,
           kind,
-          rtpParameters,
-        });
-
-        // add producer to the producers array
-        const { roomName } = sfuClient.peers[socket.id];
-
-        addProducer(producer, roomName);
-
-        informConsumers(roomName, socket.id, producer.id);
-
-        console.log("Producer ID: ", producer.id, producer.kind);
-
-        producer.on("transportclose", () => {
-          console.log("transport for this producer closed ");
-          producer.close();
-        });
-
+          rtpParameters
+        );
+        const producersCount = await sfuClient.getProducersCount();
         // Send back to the client the Producer's id
         callback({
-          id: producer.id,
-          producersExist: sfuClient.producers.length > 1 ? true : false,
+          id: producer_id,
+          producersExist: producersCount > 1 ? true : false,
         });
       }
     );

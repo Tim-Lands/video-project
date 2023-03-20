@@ -8,7 +8,16 @@ export interface TransportAttributes {
   consumer: Consumer;
 }
 export class TransportModel extends BaseModel<any[]> {
-  async removeAndCloseItemOfSocket(socketId: string, type?: string): Promise<void> {
+  async removeAndCloseItemOfSocket(
+    socketId: string,
+    type?: string
+  ): Promise<void> {
     super.removeAndCloseItemOfSocket("transport");
+  }
+
+  async findBySocketIdWhereNotConsumer(socketId: string) {
+    return this.dataSource.find(
+      (transport) => transport.socketId === socketId && !transport.consumer
+    );
   }
 }
