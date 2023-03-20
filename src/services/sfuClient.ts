@@ -116,13 +116,12 @@ export class SFUClient {
     const { roomName } = this.peers[socketId];
     const room = await this.roomModel.findOneByRoomName(roomName);
     const router = room.router;
-    const consumerTransport =
+    const consumerTransportData =
       await this.transportModel.findConsumerTransportById(
         serverConsumerTransportId
       );
-
-    if (!consumerTransport) return;
-
+    const consumerTransport = consumerTransportData?.transport;
+    if (!consumerTransportData) return;
     // check if the router can consume the specified producer
     if (
       router.canConsume({
@@ -139,6 +138,19 @@ export class SFUClient {
       this.consumerModel.create({ socketId, consumer, roomName });
       return { consumer, consumerTransport };
     }
+  }
+
+  async resumeConsume(id: string) {
+    const consumer = await this.consumerModel.findOneById(id);
+    await consumer.consumer.resume();
+  }
+
+  async connectConsumerTransport(dtlsParameters: any, transportId: string) {
+    const transport = await this.transportModel.findConsumerTransportById(
+      transportId
+    );
+    const consumerTransport = transport?.transport;
+    if (consumerTransport) await consumerTransport.connect({ dtlsParameters });
   }
 
   async informConsumers(roomName: string, socketId: string, id: string) {

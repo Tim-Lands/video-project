@@ -27,7 +27,7 @@ export class TransportModel extends BaseModel<any[]> {
     return this.dataSource.find(
       (transportData) =>
         transportData.consumer && transportData.transport.id == id
-    )?.transport;
+    );
   }
 
   async findOneById(id: any): Promise<Transport> {

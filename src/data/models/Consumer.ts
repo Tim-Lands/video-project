@@ -6,11 +6,22 @@ export interface ConsumerAttributes {
   consumer: Consumer;
 }
 export class ConsumerModel extends BaseModel<ConsumerAttributes[]> {
-  async removeAndCloseItemOfSocket(socketId: string, type?: string): Promise<void> {
+  async removeAndCloseItemOfSocket(
+    socketId: string,
+    type?: string
+  ): Promise<void> {
     super.removeAndCloseItemOfSocket("consumer");
   }
 
   async deleteById(id: any): Promise<void> {
-      this.dataSource = this.dataSource.filter(consumerData=>consumerData.consumer.id)
+    this.dataSource = this.dataSource.filter(
+      (consumerData) => consumerData.consumer.id
+    );
+  }
+
+  async findOneById(id: any): Promise<any> {
+    return this.dataSource.find(
+      (consumerData) => consumerData.consumer.id == id
+    );
   }
 }

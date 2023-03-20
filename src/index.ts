@@ -237,13 +237,10 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       "transport-recv-connect",
       async ({ dtlsParameters, serverConsumerTransportId }) => {
         console.log(`DTLS PARAMS: ${dtlsParameters}`);
-        const consumerTransport = sfuClient.transports.find(
-          (transportData) =>
-            transportData.consumer &&
-            transportData.transport.id == serverConsumerTransportId
-        )?.transport;
-        if (consumerTransport)
-          await consumerTransport.connect({ dtlsParameters });
+        sfuClient.connectConsumerTransport(
+          dtlsParameters,
+          serverConsumerTransportId
+        );
       }
     );
 
@@ -272,7 +269,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
             consumerTransport.close();
             sfuClient.removeTransport(consumerTransport?.id);
             consumer.close();
-            sfuClient.removeConsumer(consumer.id)
+            sfuClient.removeConsumer(consumer.id);
           });
 
           // from the consumer extract the following params
@@ -300,51 +297,9 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
 
     socket.on("consumer-resume", async ({ serverConsumerId }) => {
       console.log("consumer resume");
-      const consumer: any = sfuClient.consumers.find(
-        (consumerData) => consumerData.consumer.id === serverConsumerId
-      );
-      await consumer.consumer.resume();
+      await sfuClient.resumeConsume(serverConsumerId);
     });
   });
-
-  const createWebRtcTransport = async (router: Router) => {
-    return new Promise<WebRtcTransport>(async (resolve, reject) => {
-      try {
-        // https://mediasoup.org/documentation/v3/mediasoup/api/#WebRtcTransportOptions
-        const webRtcTransport_options = {
-          listenIps: [
-            {
-              ip: "0.0.0.0", // replace with relevant IP address
-              announcedIp: "192.168.1.3",
-            },
-          ],
-          enableUdp: true,
-          enableTcp: true,
-          preferUdp: true,
-        };
-
-        // https://mediasoup.org/documentation/v3/mediasoup/api/#router-createWebRtcTransport
-        let transport: WebRtcTransport = await router.createWebRtcTransport(
-          webRtcTransport_options
-        );
-        console.log(`transport id: ${transport.id}`);
-
-        transport.on("dtlsstatechange", (dtlsState: any) => {
-          if (dtlsState === "closed") {
-            transport.close();
-          }
-        });
-
-        transport.on("@close", () => {
-          console.log("transport closed");
-        });
-
-        resolve(transport);
-      } catch (error) {
-        reject(error);
-      }
-    });
-  };
 });
 
 server.listen(5000, () => console.log(`Server is running on port ${5000}`));
