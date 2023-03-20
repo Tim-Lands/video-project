@@ -17,9 +17,11 @@ export class TransportModel extends BaseModel<any[]> {
   }
 
   async findBySocketIdWhereNotConsumer(socketId: string) {
+    // console.log(this.dataSource);
+    // console.log(this.dataSource[socketId]);
     return this.dataSource.find(
       (transportData) =>
-        transportData.socketId === socketId && !transportData.consumer
+        transportData.socketId == socketId && !transportData.consumer
     );
   }
 

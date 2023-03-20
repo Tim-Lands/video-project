@@ -1,7 +1,7 @@
 export class BaseModel<t extends any> {
   dataSource: any[] = [];
   async create(data: any) {
-    this.dataSource[data.socketId] = data;
+    this.dataSource.push(data);
   }
 
   async deleteById(id: any) {

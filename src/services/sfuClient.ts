@@ -79,14 +79,28 @@ export class SFUClient {
     this.consumerModel.deleteById(id);
   }
 
+  async getTransport(socketId: string) {
+    return await this.transportModel.findBySocketIdWhereNotConsumer(socketId);
+  }
+
+  async getProducersListForSocket(socketId: string) {
+    const { roomName } = this.peers[socketId];
+    const producers = await this.producerModel.findAllProducersInRoomByRoomname(
+      roomName
+    );
+    return producers.filter(
+      (producerData) => producerData.socketId !== socketId
+    );
+  }
+
   async getProducersCount() {
     return this.producerModel.count();
   }
 
   async transportProduce(socketId: string, kind: any, rtpParameters: any) {
-    const transporter =
+    const transporterData =
       await this.transportModel.findBySocketIdWhereNotConsumer(socketId);
-
+    const transporter = transporterData.transport;
     const producer = await transporter.produce({ kind, rtpParameters });
     // add producer to the producers array
     const { roomName } = this.peers[socketId];
@@ -123,6 +137,7 @@ export class SFUClient {
     const consumerTransport = consumerTransportData?.transport;
     if (!consumerTransportData) return;
     // check if the router can consume the specified producer
+
     if (
       router.canConsume({
         producerId: remoteProducerId,
@@ -136,6 +151,11 @@ export class SFUClient {
         paused: true,
       });
       this.consumerModel.create({ socketId, consumer, roomName });
+      console.log(
+        "consumer and consumer transport from consume function, ",
+        consumer,
+        consumerTransport
+      );
       return { consumer, consumerTransport };
     }
   }
@@ -161,10 +181,10 @@ export class SFUClient {
       await this.producerModel.findAllProducersInRoomByRoomname(roomName);
     producersInRoom
       .filter((producer: any) => producer.socketId != socketId)
-      .map((producer) => this.peers[producer.socketId].socket)
-      .forEach((producerSocket) =>
-        producerSocket.emit("nwe-producer", { producerId: id })
-      );
+      .map((producer) => this.peers[producer.socketId]?.socket)
+      .forEach((producerSocket) => {
+        producerSocket?.emit("new-producer", { producerId: id });
+      });
   }
 
   async createRoom(roomName: any, socketId: string) {
@@ -216,7 +236,6 @@ export class SFUClient {
     transport.on("@close", () => {
       console.log("transport closed");
     });
-
     this.transportModel.create({
       transport,
       socketId,

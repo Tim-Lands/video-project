@@ -219,6 +219,7 @@ const connectSendTransport = async () => {
 
 const signalNewConsumerTransport = async (remoteProducerId) => {
   //check if we are already consuming the remoteProducerId
+  console.log('recieving signal new consumer, ', remoteProducerId)
   if (consumingTransports.includes(remoteProducerId)) return;
   consumingTransports.push(remoteProducerId);
 

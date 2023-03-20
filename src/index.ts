@@ -1,5 +1,3 @@
-/* Please follow mediasoup installation requirements */
-/* https://mediasoup.org/documentation/v3/mediasoup/installation/ */
 import express from "express";
 import fs from "fs";
 import path from "path";
@@ -35,11 +33,6 @@ app.get("*", (req: any, res: any, next: any) => {
 
 app.use("/sfu/:room", express.static(path.join(dirname, "public")));
 
-// SSL cert for HTTPS access
-/* const options = {
-	key: fs.readFileSync('./server/ssl/key.pem', 'utf-8'),
-	cert: fs.readFileSync('./server/ssl/cert.pem', 'utf-8')
-} */
 const io = new Server(server, { cors: { origin: "*" } });
 
 // socket.io namespace (could represent a room?)
@@ -61,11 +54,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
   // [ { socketId1, roomName1, consumer, }, ... ]
 
   // We create a Worker as soon as our application starts
-
-  // This is an Array of RtpCapabilities
-  // https://mediasoup.org/documentation/v3/mediasoup/rtp-parameters-and-capabilities/#RtpCodecCapability
-  // list of media codecs supported by mediasoup ...
-  // https://github.com/versatica/mediasoup/blob/v3/src/supportedRtpCapabilities.ts
 
   /* connections.use(async (socket, next) => {
 	console.log(socket.handshake.auth.token)
@@ -130,28 +118,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       callback({ rtpCapabilities });
     });
 
-    // socket.on('createRoom', async (callback) => {
-    //   if (router === undefined) {
-    //     // worker.createRouter(options)
-    //     // options = { mediaCodecs, appData }
-    //     // mediaCodecs -> defined above
-    //     // appData -> custom application data - we are not supplying any
-    //     // none of the two are required
-    //     router = await worker.createRouter({ mediaCodecs, })
-    //     console.log(`Router ID: ${router.id}`)
-    //   }
-
-    //   getRtpCapabilities(callback)
-    // })
-
-    // const getRtpCapabilities = (callback) => {
-    //   const rtpCapabilities = router.rtpCapabilities
-
-    //   callback({ rtpCapabilities })
-    // }
-
-    // Client emits a request to create server side Transport
-    // We need to differentiate between the producer and consumer transports
     socket.on("createWebRtcTransport", async ({ consumer }, callback) => {
       const transport = await sfuClient.createWebRtcTransport(
         socket.id,
@@ -167,50 +133,19 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       });
     });
 
-    const addConsumer = (consumer: Consumer, roomName: string) => {
-      // add the consumer to the consumers list
-      sfuClient.consumers = [
-        ...sfuClient.consumers,
-        { socketId: socket.id, consumer, roomName },
-      ];
-
-      // add the consumer id to the peers list
-      sfuClient.peers[socket.id] = {
-        ...sfuClient.peers[socket.id],
-        consumers: [...sfuClient.peers[socket.id].consumers, consumer.id],
-      };
-    };
-
-    socket.on("getProducers", (callback) => {
+    socket.on("getProducers", async (callback) => {
       //return all producer transports
-      const { roomName } = sfuClient.peers[socket.id];
-
-      let producerList: string[] = [];
-      sfuClient.producers.forEach((producerData) => {
-        if (
-          producerData.socketId !== socket.id &&
-          producerData.roomName === roomName
-        ) {
-          producerList = [...producerList, producerData.producer.id];
-        }
-      });
-
+      const producers = await sfuClient.getProducersListForSocket(socket.id);
       // return the producer list back to the client
-      callback(producerList);
+      callback(producers);
     });
 
-    const getTransport = (socketId: string) => {
-      const [producerTransport] = sfuClient.transports.filter(
-        (transport) => transport.socketId === socketId && !transport.consumer
-      );
-      return producerTransport.transport;
-    };
-
     // see client's socket.emit('transport-connect', ...)
-    socket.on("transport-connect", ({ dtlsParameters }) => {
+    socket.on("transport-connect", async ({ dtlsParameters }) => {
       console.log("DTLS PARAMS... ", { dtlsParameters });
-
-      getTransport(socket.id).connect({ dtlsParameters });
+      const transportData = await sfuClient.getTransport(socket.id);
+      const transport = transportData.transport;
+      transport.connect({ dtlsParameters });
     });
 
     // see client's socket.emit('transport-produce', ...)
@@ -281,7 +216,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
             rtpParameters: consumer.rtpParameters,
             serverConsumerId: consumer.id,
           };
-
           // send the parameters to the client
           callback({ params });
         } catch (error: any) {
@@ -296,7 +230,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
     );
 
     socket.on("consumer-resume", async ({ serverConsumerId }) => {
-      console.log("consumer resume");
       await sfuClient.resumeConsume(serverConsumerId);
     });
   });
