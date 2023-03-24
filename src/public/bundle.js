@@ -20722,12 +20722,12 @@ const signalNewConsumerTransport = async (remoteProducerId) => {
 
       let consumerTransport;
       try {
+        console.log("before device createRecvTransport");
         consumerTransport = device.createRecvTransport(params);
       } catch (error) {
         // exceptions:
         // {InvalidStateError} if not loaded
         // {TypeError} if wrong arguments.
-        console.log(error);
         return;
       }
 
@@ -20750,16 +20750,16 @@ const signalNewConsumerTransport = async (remoteProducerId) => {
           }
         }
       );
-
       connectRecvTransport(consumerTransport, remoteProducerId, params.id);
     }
   );
 };
 
 // server informs the client of a new producer just joined
-socket.on("new-producer", ({ producerId }) =>
-  signalNewConsumerTransport(producerId)
-);
+socket.on("new-producer", ({ producerId }) => {
+  console.log("id of the new producer, ", producerId);
+  signalNewConsumerTransport(producerId);
+});
 const btntest = document.getElementById("testbtn");
 const printAllProducers = () => {
   socket.emit("test-producers");
@@ -20768,7 +20768,7 @@ btntest.addEventListener("click", printAllProducers);
 
 var getProducers = () => {
   socket.emit("getProducers", (producerIds) => {
-    console.log(producerIds);
+    console.log('producer ids-------------------------------', producerIds);
     // for each of the producer create a consumer
     // producerIds.forEach(id => signalNewConsumerTransport(id))
     producerIds.forEach(signalNewConsumerTransport);
@@ -20783,6 +20783,11 @@ const connectRecvTransport = async (
   // for consumer, we need to tell the server first
   // to create a consumer based on the rtpCapabilities and consume
   // if the router can consume, it will send back a set of params as below
+  console.log(
+    "***********************",
+    remoteProducerId,
+    "***************************"
+  );
   await socket.emit(
     "consume",
     {
@@ -20791,6 +20796,7 @@ const connectRecvTransport = async (
       serverConsumerTransportId,
     },
     async ({ params }) => {
+      console.log("inside consume callback");
       if (params.error) {
         console.log("Cannot Consume");
         return;

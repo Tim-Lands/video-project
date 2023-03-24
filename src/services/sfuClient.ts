@@ -60,7 +60,7 @@ export class SFUClient {
   }
 
   async removeConsumersOfSocket(socketId: string) {
-    console.log('id of removing consumer, ', socketId)
+    console.log("id of removing consumer, ", socketId);
     this.consumerModel.removeAndCloseItemOfSocket(socketId);
   }
 
@@ -86,12 +86,11 @@ export class SFUClient {
 
   async getProducersListForSocket(socketId: string) {
     const { roomName } = this.peers[socketId];
-    const producers = await this.producerModel.findAllProducersInRoomByRoomname(
-      roomName
-    );
-    return producers.filter(
-      (producerData) => producerData.socketId !== socketId
-    );
+    const producersData =
+      await this.producerModel.findAllProducersInRoomByRoomname(roomName);
+    return producersData
+      .filter((producerData) => producerData.socketId !== socketId)
+      .map((data) => data.producer);
   }
 
   async getProducersCount() {
@@ -153,6 +152,8 @@ export class SFUClient {
       });
       this.consumerModel.create({ socketId, consumer, roomName });
       return { consumer, consumerTransport };
+    } else {
+      console.log("router itself cannot consume");
     }
   }
 
@@ -241,6 +242,4 @@ export class SFUClient {
 
     return transport;
   }
-
-  
 }

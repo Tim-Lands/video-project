@@ -137,7 +137,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       //return all producer transports
       const producers = await sfuClient.getProducersListForSocket(socket.id);
       // return the producer list back to the client
-      callback(producers);
+      callback(producers.map((producer) => producer.id));
     });
 
     // see client's socket.emit('transport-connect', ...)
@@ -191,13 +191,22 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
         callback
       ) => {
         try {
+          console.log(
+            "*******************inside the consume socket event***************"
+          );
+          console.log("remote producer id is, ", remoteProducerId);
           const consumerData = await sfuClient.consume(
             socket.id,
             serverConsumerTransportId,
             rtpCapabilities,
             remoteProducerId
           );
-          if (!consumerData) return;
+          if (!consumerData) {
+            console.log(
+              "************************ cannot coonsume **************************"
+            );
+            return;
+          }
           const { consumer, consumerTransport } = consumerData;
           consumer.on("transportclose", () => {
             console.log("transport close from consumer");
@@ -222,6 +231,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
             serverConsumerId: consumer.id,
           };
           // send the parameters to the client
+          console.log("before calling consumer callback");
           callback({ params });
         } catch (error: any) {
           console.log(error.message);
