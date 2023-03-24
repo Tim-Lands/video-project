@@ -10,7 +10,7 @@ export class ProducerModel extends BaseModel<ProducerAttributes[]> {
     socketId: string,
     type?: string
   ): Promise<void> {
-    super.removeAndCloseItemOfSocket("producer");
+    super.removeAndCloseItemOfSocket(socketId, "producer");
   }
 
   async findAllProducersInRoomByRoomname(roomName: string): Promise<any[]> {

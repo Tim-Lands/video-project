@@ -42,7 +42,7 @@ export class SFUClient {
   async createAndGetWorker(): Promise<Worker> {
     const worker = await mediasoup.createWorker({
       rtcMinPort: 2000,
-      rtcMaxPort: 2020,
+      rtcMaxPort: 2040,
     });
     console.log(`worker pid ${worker.pid}`);
 
@@ -60,6 +60,7 @@ export class SFUClient {
   }
 
   async removeConsumersOfSocket(socketId: string) {
+    console.log('id of removing consumer, ', socketId)
     this.consumerModel.removeAndCloseItemOfSocket(socketId);
   }
 
@@ -151,11 +152,6 @@ export class SFUClient {
         paused: true,
       });
       this.consumerModel.create({ socketId, consumer, roomName });
-      console.log(
-        "consumer and consumer transport from consume function, ",
-        consumer,
-        consumerTransport
-      );
       return { consumer, consumerTransport };
     }
   }
@@ -245,4 +241,6 @@ export class SFUClient {
 
     return transport;
   }
+
+  
 }

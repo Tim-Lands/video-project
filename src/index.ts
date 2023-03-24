@@ -179,6 +179,11 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       }
     );
 
+    socket.on("test-producers", async () => {
+      const producers = await sfuClient.producerModel.findAll();
+      console.log(producers);
+    });
+
     socket.on(
       "consume",
       async (

@@ -10,7 +10,7 @@ export class ConsumerModel extends BaseModel<ConsumerAttributes[]> {
     socketId: string,
     type?: string
   ): Promise<void> {
-    super.removeAndCloseItemOfSocket("consumer");
+    super.removeAndCloseItemOfSocket(socketId,"consumer");
   }
 
   async deleteById(id: any): Promise<void> {

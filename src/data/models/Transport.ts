@@ -13,7 +13,7 @@ export class TransportModel extends BaseModel<any[]> {
     socketId: string,
     type?: string
   ): Promise<void> {
-    super.removeAndCloseItemOfSocket("transport");
+    super.removeAndCloseItemOfSocket(socketId, "transport");
   }
 
   async findBySocketIdWhereNotConsumer(socketId: string) {
