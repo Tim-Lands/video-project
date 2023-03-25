@@ -42,7 +42,7 @@ export class SFUClient {
   async createAndGetWorker(): Promise<Worker> {
     const worker = await mediasoup.createWorker({
       rtcMinPort: 2000,
-      rtcMaxPort: 2040,
+      rtcMaxPort: 2020,
     });
     console.log(`worker pid ${worker.pid}`);
 
