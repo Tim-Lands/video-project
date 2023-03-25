@@ -22,6 +22,12 @@ export class ProducerModel extends BaseModel<ProducerAttributes[]> {
     return data;
   }
 
+  async findBySocketId(socketId: string) {
+    return this.dataSource
+      .filter((producerData) => producerData.socketId == socketId)
+      .map((producerData) => producerData.producer);
+  }
+
   async count() {
     return this.dataSource.length;
   }

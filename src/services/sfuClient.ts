@@ -97,6 +97,11 @@ export class SFUClient {
     return this.producerModel.count();
   }
 
+  async pauseProducerBySocketId(socketId: string) {
+    const producers = await this.producerModel.findBySocketId(socketId);
+    producers.forEach((producer) => producer.pause());
+  }
+
   async transportProduce(socketId: string, kind: any, rtpParameters: any) {
     const transporterData =
       await this.transportModel.findBySocketIdWhereNotConsumer(socketId);
