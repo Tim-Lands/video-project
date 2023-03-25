@@ -91,7 +91,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       // create Router if it does not exist
       // const router1 = rooms[roomName] && rooms[roomName].get('data').router || await createRoom(roomName, socket.id)
       const { current_user } = socket.data;
-      console.log("current_user is, ", current_user);
       // const is_member_of_session = await isMemberOfSession(roomName, current_user.id)
       /* if (!is_member_of_session){
 			return socket.send('error', new Error("unauthorized"))
@@ -142,7 +141,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
 
     // see client's socket.emit('transport-connect', ...)
     socket.on("transport-connect", async ({ dtlsParameters }) => {
-      console.log("DTLS PARAMS... ", { dtlsParameters });
       const transportData = await sfuClient.getTransport(socket.id);
       const transport = transportData.transport;
       transport.connect({ dtlsParameters });
@@ -171,7 +169,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
     socket.on(
       "transport-recv-connect",
       async ({ dtlsParameters, serverConsumerTransportId }) => {
-        console.log(`DTLS PARAMS: ${dtlsParameters}`);
         sfuClient.connectConsumerTransport(
           dtlsParameters,
           serverConsumerTransportId
@@ -181,7 +178,15 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
 
     socket.on("test-producers", async () => {
       const producers = await sfuClient.producerModel.findAll();
+      const consumers = await sfuClient.consumerModel.findAll();
+      const transporters = await sfuClient.transportModel.findAll();
       console.log(producers);
+      console.log("********************************");
+      console.log(consumers);
+      console.log("********************************");
+      console.log(transporters);
+      console.log("************************************");
+      console.log(sfuClient.peers);
     });
 
     socket.on(
@@ -191,10 +196,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
         callback
       ) => {
         try {
-          console.log(
-            "*******************inside the consume socket event***************"
-          );
-          console.log("remote producer id is, ", remoteProducerId);
           const consumerData = await sfuClient.consume(
             socket.id,
             serverConsumerTransportId,

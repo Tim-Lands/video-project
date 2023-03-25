@@ -20621,6 +20621,8 @@ const createSendTransport = () => {
       "connect",
       async ({ dtlsParameters }, callback, errback) => {
         try {
+          console.log("dtls poarameters of producer", dtlsParameters);
+
           // Signal local DTLS parameters to the server side transport
           // see server's socket.on('transport-connect', ...)
           await socket.emit("transport-connect", {
@@ -20653,6 +20655,7 @@ const createSendTransport = () => {
           ({ id, producersExist }) => {
             // Tell the transport that parameters were transmitted and provide it with the
             // server side producer's id.
+            console.log("my producer id is : ", id);
             callback({ id });
 
             // if producers exist, then join room
@@ -20735,13 +20738,14 @@ const signalNewConsumerTransport = async (remoteProducerId) => {
         "connect",
         async ({ dtlsParameters }, callback, errback) => {
           try {
+            console.log("consumer transport has been connected");
+            console.log("dtls poarameters of consumer", dtlsParameters);
             // Signal local DTLS parameters to the server side transport
             // see server's socket.on('transport-recv-connect', ...)
             await socket.emit("transport-recv-connect", {
               dtlsParameters,
               serverConsumerTransportId: params.id,
             });
-
             // Tell the transport that parameters were transmitted.
             callback();
           } catch (error) {
@@ -20768,7 +20772,7 @@ btntest.addEventListener("click", printAllProducers);
 
 var getProducers = () => {
   socket.emit("getProducers", (producerIds) => {
-    console.log('producer ids-------------------------------', producerIds);
+    console.log("producer ids-------------------------------", producerIds);
     // for each of the producer create a consumer
     // producerIds.forEach(id => signalNewConsumerTransport(id))
     producerIds.forEach(signalNewConsumerTransport);

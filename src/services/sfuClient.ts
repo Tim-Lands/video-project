@@ -102,6 +102,7 @@ export class SFUClient {
       await this.transportModel.findBySocketIdWhereNotConsumer(socketId);
     const transporter = transporterData.transport;
     const producer = await transporter.produce({ kind, rtpParameters });
+    console.log("the producer is, ", producer);
     // add producer to the producers array
     const { roomName } = this.peers[socketId];
 
@@ -151,6 +152,10 @@ export class SFUClient {
         paused: true,
       });
       this.consumerModel.create({ socketId, consumer, roomName });
+      this.peers[socketId] = {
+        ...this.peers[socketId],
+        consumers: [...this.peers[socketId].consumers, consumer.id],
+      };
       return { consumer, consumerTransport };
     } else {
       console.log("router itself cannot consume");
@@ -167,7 +172,10 @@ export class SFUClient {
       transportId
     );
     const consumerTransport = transport?.transport;
-    if (consumerTransport) await consumerTransport.connect({ dtlsParameters });
+    if (consumerTransport) {
+      console.log("connecting consumer transport of id, ", transportId);
+      await consumerTransport.connect({ dtlsParameters });
+    }
   }
 
   async informConsumers(roomName: string, socketId: string, id: string) {
@@ -240,6 +248,10 @@ export class SFUClient {
       consumer,
     });
 
+    this.peers[socketId] = {
+      ...this.peers[socketId],
+      transports: [...this.peers[socketId].transports, transport.id],
+    };
     return transport;
   }
 }

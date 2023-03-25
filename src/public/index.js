@@ -7,7 +7,6 @@ const roomName = window.location.pathname.split("/")[2];
 const socket = io("/mediasoup");
 
 socket.on("connection-success", ({ socketId }) => {
-  console.log(socketId);
   getLocalStream();
 });
 
@@ -62,7 +61,6 @@ const streamSuccess = (stream) => {
 
 const joinRoom = () => {
   socket.emit("joinRoom", { roomName }, (data) => {
-    console.log(`Router RTP Capabilities... ${data.rtpCapabilities}`);
     // we assign to local variable and will be used when
     // loading the client Device (see createDevice above)
     rtpCapabilities = data.rtpCapabilities;
@@ -106,12 +104,10 @@ const createDevice = async () => {
       routerRtpCapabilities: rtpCapabilities,
     });
 
-    console.log("Device RTP Capabilities", device.rtpCapabilities);
 
     // once the device loads, create transport
     createSendTransport();
   } catch (error) {
-    console.log(error);
     if (error.name === "UnsupportedError")
       console.warn("browser not supported");
   }
@@ -124,11 +120,9 @@ const createSendTransport = () => {
     // The server sends back params needed
     // to create Send Transport on the client side
     if (params.error) {
-      console.log(params.error);
       return;
     }
 
-    console.log(params);
 
     // creates a new WebRTC Transport to send media
     // based on the server's producer transport params
@@ -142,6 +136,7 @@ const createSendTransport = () => {
       "connect",
       async ({ dtlsParameters }, callback, errback) => {
         try {
+
           // Signal local DTLS parameters to the server side transport
           // see server's socket.on('transport-connect', ...)
           await socket.emit("transport-connect", {
@@ -157,7 +152,6 @@ const createSendTransport = () => {
     );
 
     producerTransport.on("produce", async (parameters, callback, errback) => {
-      console.log(parameters);
 
       try {
         // tell the server to create a Producer
@@ -197,27 +191,22 @@ const connectSendTransport = async () => {
 
   audioProducer = await producerTransport.produce(audioParams);
   videoProducer = await producerTransport.produce(videoParams);
-
   audioProducer.on("trackended", () => {
-    console.log("audio track ended");
 
     // close audio track
   });
 
   audioProducer.on("transportclose", () => {
-    console.log("audio transport ended");
 
     // close audio track
   });
 
   videoProducer.on("trackended", () => {
-    console.log("video track ended");
 
     // close video track
   });
 
   videoProducer.on("transportclose", () => {
-    console.log("video transport ended");
 
     // close video track
   });
@@ -225,7 +214,6 @@ const connectSendTransport = async () => {
 
 const signalNewConsumerTransport = async (remoteProducerId) => {
   //check if we are already consuming the remoteProducerId
-  console.log("recieving signal new consumer, ", remoteProducerId);
   if (consumingTransports.includes(remoteProducerId)) return;
   consumingTransports.push(remoteProducerId);
 
@@ -239,11 +227,9 @@ const signalNewConsumerTransport = async (remoteProducerId) => {
         console.log(params.error);
         return;
       }
-      console.log(`PARAMS...`, params);
 
       let consumerTransport;
       try {
-        console.log("before device createRecvTransport");
         consumerTransport = device.createRecvTransport(params);
       } catch (error) {
         // exceptions:
@@ -262,7 +248,6 @@ const signalNewConsumerTransport = async (remoteProducerId) => {
               dtlsParameters,
               serverConsumerTransportId: params.id,
             });
-
             // Tell the transport that parameters were transmitted.
             callback();
           } catch (error) {
@@ -278,7 +263,6 @@ const signalNewConsumerTransport = async (remoteProducerId) => {
 
 // server informs the client of a new producer just joined
 socket.on("new-producer", ({ producerId }) => {
-  console.log("id of the new producer, ", producerId);
   signalNewConsumerTransport(producerId);
 });
 const btntest = document.getElementById("testbtn");
@@ -289,7 +273,6 @@ btntest.addEventListener("click", printAllProducers);
 
 var getProducers = () => {
   socket.emit("getProducers", (producerIds) => {
-    console.log('producer ids-------------------------------', producerIds);
     // for each of the producer create a consumer
     // producerIds.forEach(id => signalNewConsumerTransport(id))
     producerIds.forEach(signalNewConsumerTransport);
@@ -304,11 +287,7 @@ const connectRecvTransport = async (
   // for consumer, we need to tell the server first
   // to create a consumer based on the rtpCapabilities and consume
   // if the router can consume, it will send back a set of params as below
-  console.log(
-    "***********************",
-    remoteProducerId,
-    "***************************"
-  );
+ 
   await socket.emit(
     "consume",
     {
@@ -317,13 +296,10 @@ const connectRecvTransport = async (
       serverConsumerTransportId,
     },
     async ({ params }) => {
-      console.log("inside consume callback");
       if (params.error) {
-        console.log("Cannot Consume");
         return;
       }
 
-      console.log(`Consumer Params`, params);
       // then consume with the local consumer transport
       // which creates a consumer
       const consumer = await consumerTransport.consume({
@@ -364,7 +340,6 @@ const connectRecvTransport = async (
 
       // destructure and retrieve the video track from the producer
       const { track } = consumer;
-      console.log("track is as following, ", track);
       document.getElementById(remoteProducerId).srcObject = new MediaStream([
         track,
       ]);

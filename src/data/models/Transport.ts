@@ -27,18 +27,10 @@ export class TransportModel extends BaseModel<any[]> {
 
   async findConsumerTransportById(id: string) {
     const consumerTransport = this.dataSource.find((transportData) => {
-      console.log(
-        "transport data for findConsumerTransportById function",
-        id,
-        "-------",
-        transportData.transport.id
-      );
+
       return transportData.consumer && transportData.transport.id == id;
     });
-    console.log(
-      "--------consumerTransport has been found-----------",
-      consumerTransport
-    );
+
     return consumerTransport;
   }
 
