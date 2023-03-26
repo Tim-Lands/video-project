@@ -104,7 +104,6 @@ const createDevice = async () => {
       routerRtpCapabilities: rtpCapabilities,
     });
 
-
     // once the device loads, create transport
     createSendTransport();
   } catch (error) {
@@ -123,7 +122,6 @@ const createSendTransport = () => {
       return;
     }
 
-
     // creates a new WebRTC Transport to send media
     // based on the server's producer transport params
     // https://mediasoup.org/documentation/v3/mediasoup-client/api/#TransportOptions
@@ -136,7 +134,6 @@ const createSendTransport = () => {
       "connect",
       async ({ dtlsParameters }, callback, errback) => {
         try {
-
           // Signal local DTLS parameters to the server side transport
           // see server's socket.on('transport-connect', ...)
           await socket.emit("transport-connect", {
@@ -152,7 +149,6 @@ const createSendTransport = () => {
     );
 
     producerTransport.on("produce", async (parameters, callback, errback) => {
-
       try {
         // tell the server to create a Producer
         // with the following parameters and produce
@@ -192,22 +188,18 @@ const connectSendTransport = async () => {
   audioProducer = await producerTransport.produce(audioParams);
   videoProducer = await producerTransport.produce(videoParams);
   audioProducer.on("trackended", () => {
-
     // close audio track
   });
 
   audioProducer.on("transportclose", () => {
-
     // close audio track
   });
 
   videoProducer.on("trackended", () => {
-
     // close video track
   });
 
   videoProducer.on("transportclose", () => {
-
     // close video track
   });
 };
@@ -266,6 +258,10 @@ socket.on("new-producer", ({ producerId }) => {
   signalNewConsumerTransport(producerId);
 });
 const btntest = document.getElementById("testbtn");
+const btnmute = document.getElementById("mute-sound");
+btnmute.addEventListener("click", () => {
+  socket.emit("mute-me");
+});
 const printAllProducers = () => {
   socket.emit("test-producers");
 };
@@ -287,7 +283,7 @@ const connectRecvTransport = async (
   // for consumer, we need to tell the server first
   // to create a consumer based on the rtpCapabilities and consume
   // if the router can consume, it will send back a set of params as below
- 
+
   await socket.emit(
     "consume",
     {

@@ -189,8 +189,12 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
       console.log(sfuClient.peers);
     });
 
+    socket.on("mute-audio", async () => {
+      await sfuClient.pauseProducerBySocketId(socket.id);
+    });
+
     socket.on(
-      "consume",
+      "consume", 
       async (
         { rtpCapabilities, remoteProducerId, serverConsumerTransportId },
         callback

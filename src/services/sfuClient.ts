@@ -97,9 +97,18 @@ export class SFUClient {
     return this.producerModel.count();
   }
 
-  async pauseProducerBySocketId(socketId: string) {
+  async pauseAudioProducerBySocketId(socketId: string) {
     const producers = await this.producerModel.findBySocketId(socketId);
-    producers.forEach((producer) => producer.pause());
+    producers
+      .filter((producer) => producer.kind == "audio")
+      .forEach((producer) => producer.pause());
+  }
+
+  async pauseVideoProducerBySocketId(socketId: string) {
+    const producers = await this.producerModel.findBySocketId(socketId);
+    producers
+      .filter((producer) => producer.kind == "video")
+      .forEach((producer) => producer.pause());
   }
 
   async transportProduce(socketId: string, kind: any, rtpParameters: any) {
