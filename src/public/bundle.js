@@ -20739,7 +20739,8 @@ socket.on("new-producer", ({ producerId }) => {
 const btntest = document.getElementById("testbtn");
 const btnmute = document.getElementById("mute-sound");
 btnmute.addEventListener("click", () => {
-  socket.emit("mute-me");
+  if (audioProducer.paused) audioProducer.resume();
+  else audioProducer.pause();
 });
 const printAllProducers = () => {
   socket.emit("test-producers");

@@ -1,5 +1,5 @@
 const API = require('../config/API')
-const getSesionInfo = async(id:number)=>{
+const getSesionDateInfo = async(id:number)=>{
     try{
         const res = await API.get(`/api/sessions/${id}`)
         return res?.data

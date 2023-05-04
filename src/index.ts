@@ -11,7 +11,7 @@ import {
   Consumer,
   RtpCodecCapability,
 } from "mediasoup/node/lib/types";
-import { authorizeToken } from "./API/AuthService";
+import { getUserByToken } from "./API/Auth";
 import { SFUClient } from "./services/sfuClient";
 // const { isOwnerOfSession, isMemberOfSession } = require('./services/ProductService')
 
@@ -30,8 +30,8 @@ app.get("*", (req: any, res: any, next: any) => {
     `You need to specify a room name in the path e.g. 'https://127.0.0.1/sfu/room'`
   );
 });
-
-app.use("/sfu/:room", express.static(path.join(dirname, "public")));
+console.log(dirname);
+app.use("/sfu/:room", express.static(path.join(dirname,'src', "public")));
 
 const io = new Server(server, { cors: { origin: "*" } });
 
@@ -190,11 +190,11 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
     });
 
     socket.on("mute-audio", async () => {
-      await sfuClient.pauseProducerBySocketId(socket.id);
+      // await sfuClient.pauseProducerBySocketId(socket.id);
     });
 
     socket.on(
-      "consume", 
+      "consume",
       async (
         { rtpCapabilities, remoteProducerId, serverConsumerTransportId },
         callback

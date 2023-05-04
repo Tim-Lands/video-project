@@ -1,5 +1,5 @@
-const axios = require('axios')
-module.exports = axios.create({
+const axios = require("axios");
+export default axios.create({
   baseURL: "https://api.timwoork.com/", //api.timwoork.com
   withCredentials: true,
 });
