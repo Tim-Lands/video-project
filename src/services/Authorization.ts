@@ -1,12 +1,15 @@
 import { getUserByToken } from "../API/Auth";
-import { getSessionDateInfo } from "../API/Session";
+import { sessionApi } from "../API/Session";
 import { UnauthorizedError } from "../errors/UnauthorizedError";
 import { User } from "../resources/responses/meResponse";
 
-const authorize = async (id: number, token: string): Promise<User> => {
+const authorizeParticipant = async (
+  id: number,
+  token: string
+): Promise<User> => {
   if (!token) throw new UnauthorizedError();
   const user: User = await getUserByToken({ token });
-  const sessionDateInfo = await getSessionDateInfo(id);
+  const sessionDateInfo = await sessionApi.getSessionDateInfo(id);
   if (sessionDateInfo.instructor_id == user.id) {
     user.is_instructor = true;
     return user;
@@ -16,5 +19,5 @@ const authorize = async (id: number, token: string): Promise<User> => {
   } else throw new UnauthorizedError();
 };
 export const authorizationService = {
-  authorize,
+  authorizeParticipant,
 };

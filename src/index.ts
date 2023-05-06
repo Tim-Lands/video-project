@@ -1,19 +1,10 @@
 import express from "express";
-import fs from "fs";
 import path from "path";
 import { Server } from "socket.io";
-import * as mediasoup from "mediasoup";
-import {
-  Worker,
-  Router,
-  WebRtcTransport,
-  Producer,
-  Consumer,
-  RtpCodecCapability,
-} from "mediasoup/node/lib/types";
+import { Worker } from "mediasoup/node/lib/types";
 import { getUserByToken } from "./API/Auth";
 import { SFUClient } from "./services/sfuClient";
-// const { isOwnerOfSession, isMemberOfSession } = require('./services/ProductService')
+import socketService from "./services/socket";
 
 const httpServer = require("http");
 const app = express();
@@ -31,7 +22,7 @@ app.get("*", (req: any, res: any, next: any) => {
   );
 });
 console.log(dirname);
-app.use("/sfu/:room", express.static(path.join(dirname,'src', "public")));
+app.use("/sfu/:room", express.static(path.join(dirname, "src", "public")));
 
 const io = new Server(server, { cors: { origin: "*" } });
 
@@ -69,9 +60,10 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
 }) */
 
   connections.on("connection", async (socket) => {
-    socket.emit("connection-success", {
+    await socketService.handleConnection(socket, () => {});
+ /*    socket.emit("connection-success", {
       socketId: socket.id,
-    });
+    }); */
 
     socket.on("disconnect", () => {
       // do some cleanup
@@ -199,7 +191,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
         { rtpCapabilities, remoteProducerId, serverConsumerTransportId },
         callback
       ) => {
-        try {  
+        try {
           const consumerData = await sfuClient.consume(
             socket.id,
             serverConsumerTransportId,

@@ -4,7 +4,10 @@ const mediasoupClient = require("mediasoup-client");
 
 const roomName = window.location.pathname.split("/")[2];
 
-const socket = io("/mediasoup");
+const socket = io("/mediasoup", {
+  query: { id: 1 },
+  auth: { token: "Bearer 7237|L0ICDo8jGGdAUFgrTxgnagrFl40zPY65Bt0lfyco" },
+});
 
 socket.on("connection-success", ({ socketId }) => {
   getLocalStream();

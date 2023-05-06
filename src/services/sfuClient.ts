@@ -232,7 +232,7 @@ export class SFUClient {
       listenIps: [
         {
           ip: "0.0.0.0", // replace with relevant IP address
-          announcedIp: "192.168.1.5",
+          announcedIp: "192.168.1.3",
         },
       ],
       enableUdp: true,
