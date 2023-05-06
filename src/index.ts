@@ -199,7 +199,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
         { rtpCapabilities, remoteProducerId, serverConsumerTransportId },
         callback
       ) => {
-        try {
+        try {  
           const consumerData = await sfuClient.consume(
             socket.id,
             serverConsumerTransportId,
