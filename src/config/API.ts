@@ -1,5 +1,4 @@
 const axios = require("axios");
 export default axios.create({
-  baseURL: "https://api.timwoork.com/", //api.timwoork.com
-  withCredentials: true,
+  baseURL: "http://host.docker.internal:8000", //api.timwoork.com
 });

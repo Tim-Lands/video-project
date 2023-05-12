@@ -5,15 +5,16 @@ import { Worker } from "mediasoup/node/lib/types";
 import { getUserByToken } from "./API/Auth";
 import { SFUClient } from "./services/sfuClient";
 import socketService from "./services/socket";
+import axios from "axios";
+import SocketHandler from "./services/socket";
 
 const httpServer = require("http");
 const app = express();
 const dirname = path.resolve();
 const server = httpServer.createServer(app);
 
-app.get("*", (req: any, res: any, next: any) => {
+app.get("*", async (req: any, res: any, next: any) => {
   const path = "/sfu/";
-
   if (req.path.indexOf(path) == 0 && req.path.length > path.length)
     return next();
 
@@ -38,6 +39,7 @@ const connections = io.of("/mediasoup");
  *         |-> Consumer
  **/
 const sfuClient = new SFUClient();
+const socketHandler = new SocketHandler(sfuClient);
 sfuClient.createAndGetWorker().then((worker: Worker) => {
   // { socketId1: { roomName1, socket, transports = [id1, id2,] }, producers = [id1, id2,] }, consumers = [id1, id2,], peerDetails }, ...}
   // [ { socketId1, roomName1, transport, consumer }, ... ]
@@ -60,10 +62,7 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
 }) */
 
   connections.on("connection", async (socket) => {
-    await socketService.handleConnection(socket, () => {});
- /*    socket.emit("connection-success", {
-      socketId: socket.id,
-    }); */
+    await socketHandler.handleConnection(socket, () => {});
 
     socket.on("disconnect", () => {
       // do some cleanup

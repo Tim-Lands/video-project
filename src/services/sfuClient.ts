@@ -211,16 +211,18 @@ export class SFUClient {
     let peers = [];
     let room = await this.roomModel.findOneByRoomName(roomName);
     if (room) {
+      console.log("getting router from room");
       router1 = room.router;
       peers = room.peers || [];
     } else {
+      console.log("creating router");
       router1 = await this.worker?.createRouter({
         mediaCodecs: this.mediaCodecs,
       });
     }
     room = { router: router1, peers: [...peers, socketId] };
     this.roomModel.updateOneByRoomName(roomName, room);
-    return router1;
+    return router1
   }
 
   async createWebRtcTransport(socketId: any, consumer: any) {
@@ -232,7 +234,7 @@ export class SFUClient {
       listenIps: [
         {
           ip: "0.0.0.0", // replace with relevant IP address
-          announcedIp: "192.168.1.3",
+          announcedIp: "192.168.1.4",
         },
       ],
       enableUdp: true,

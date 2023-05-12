@@ -20542,7 +20542,8 @@ const streamSuccess = (stream) => {
 };
 
 const joinRoom = () => {
-  socket.emit("joinRoom", { roomName }, (data) => {
+  console.log('joining room')
+  socket.emit("join_room", { sessionDateId:roomName }, (data) => {
     // we assign to local variable and will be used when
     // loading the client Device (see createDevice above)
     rtpCapabilities = data.rtpCapabilities;

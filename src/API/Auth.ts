@@ -1,15 +1,19 @@
 import { User } from "../resources/responses/meResponse";
-
-const API = require("../config/API");
+import API from "../config/API";
 export const getUserByToken = async ({
   token,
 }: {
   token: string;
-}): Promise<User> => {
-  const res = await API.get("/api/me", {
-    Headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return res.data;
+}): Promise<User | undefined> => {
+  try {
+    const res = await API.get("/api/me", {
+      headers: {
+        Authorization: `${token}`,
+      },
+    });
+    return res.data;
+  } catch (err: any) {
+    console.log('*******************', err, '*********************')
+    return undefined;
+  }
 };

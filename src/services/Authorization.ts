@@ -8,7 +8,8 @@ const authorizeParticipant = async (
   token: string
 ): Promise<User> => {
   if (!token) throw new UnauthorizedError();
-  const user: User = await getUserByToken({ token });
+  const user: User | undefined = await getUserByToken({ token });
+  if (!user) throw new UnauthorizedError();
   const sessionDateInfo = await sessionApi.getSessionDateInfo(id);
   if (sessionDateInfo.instructor_id == user.id) {
     user.is_instructor = true;
