@@ -10,6 +10,7 @@ export class RoomModel {
   public dataSource: any = {};
 
   async removePeerFromRoom(socket_id: string, roomName: any) {
+    if(this.dataSource[roomName])
     this.dataSource[roomName] = {
       router: this.dataSource[roomName].router,
       peers: this.dataSource[roomName].peers.filter(

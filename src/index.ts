@@ -7,6 +7,7 @@ import { SFUClient } from "./services/sfuClient";
 import socketService from "./services/socket";
 import axios from "axios";
 import SocketHandler from "./services/socket";
+import { Socket } from "socket.io";
 
 const httpServer = require("http");
 const app = express();
@@ -39,7 +40,22 @@ const connections = io.of("/mediasoup");
  *         |-> Consumer
  **/
 const sfuClient = new SFUClient();
-const socketHandler = new SocketHandler(sfuClient);
+
+const authorizeConnection = async (socket: Socket) => {
+  const token = socket.handshake.auth.token;
+  const user = await getUserByToken({ token });
+
+  if (!user) {
+    console.log(token, "&&&&", socket.handshake);
+    console.log("unauthorized user");
+    socket.disconnect();
+    return;
+  }
+  socket.emit("connection-success", {
+    socketId: socket.id,
+  });
+  return token;
+};
 sfuClient.createAndGetWorker().then((worker: Worker) => {
   // { socketId1: { roomName1, socket, transports = [id1, id2,] }, producers = [id1, id2,] }, consumers = [id1, id2,], peerDetails }, ...}
   // [ { socketId1, roomName1, transport, consumer }, ... ]
@@ -62,110 +78,38 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
 }) */
 
   connections.on("connection", async (socket) => {
-    await socketHandler.handleConnection(socket, () => {});
+    const token = await authorizeConnection(socket);
+    const socketHandler = new SocketHandler(sfuClient, socket, token);
+    socketHandler.handleConnection();
+    // socket.on("joinRoom", async ({ roomName }, callback) => {
+    //   // create Router if it does not exist
+    //   // const router1 = rooms[roomName] && rooms[roomName].get('data').router || await createRoom(roomName, socket.id)
+    //   const { current_user } = socket.data;
+    //   // const is_member_of_session = await isMemberOfSession(roomName, current_user.id)
+    //   /* if (!is_member_of_session){
+    // 	return socket.send('error', new Error("unauthorized"))
 
-    socket.on("disconnect", () => {
-      // do some cleanup
-      console.log("peer disconnected");
-      sfuClient.removeConsumersOfSocket(socket.id);
-      sfuClient.removeProducersOfSocket(socket.id);
-      sfuClient.removeTransportsOfSocket(socket.id);
+    // } */
+    //   const router1 = await sfuClient.createRoom(roomName, socket.id);
 
-      const { roomName } = sfuClient.peers[socket.id];
-      delete sfuClient.peers[socket.id];
+    //   sfuClient.peers[socket.id] = {
+    //     socket,
+    //     roomName, // Name for the Router this Peer joined
+    //     transports: [],
+    //     producers: [],
+    //     consumers: [],
+    //     peerDetails: {
+    //       name: "",
+    //       isAdmin: false, // Is this Peer the Admin?
+    //     },
+    //   };
 
-      // remove socket from room
-      sfuClient.removeSocketFromRoom(roomName, socket.id);
-    });
+    //   // get Router RTP Capabilities
+    //   const rtpCapabilities = router1.rtpCapabilities;
 
-    socket.on("joinRoom", async ({ roomName }, callback) => {
-      // create Router if it does not exist
-      // const router1 = rooms[roomName] && rooms[roomName].get('data').router || await createRoom(roomName, socket.id)
-      const { current_user } = socket.data;
-      // const is_member_of_session = await isMemberOfSession(roomName, current_user.id)
-      /* if (!is_member_of_session){
-			return socket.send('error', new Error("unauthorized"))
-		
-		} */
-      const router1 = await sfuClient.createRoom(roomName, socket.id);
-
-      sfuClient.peers[socket.id] = {
-        socket,
-        roomName, // Name for the Router this Peer joined
-        transports: [],
-        producers: [],
-        consumers: [],
-        peerDetails: {
-          name: "",
-          isAdmin: false, // Is this Peer the Admin?
-        },
-      };
-
-      // get Router RTP Capabilities
-      const rtpCapabilities = router1.rtpCapabilities;
-
-      // call callback from the client and send back the rtpCapabilities
-      callback({ rtpCapabilities });
-    });
-
-    socket.on("createWebRtcTransport", async ({ consumer }, callback) => {
-      const transport = await sfuClient.createWebRtcTransport(
-        socket.id,
-        consumer
-      );
-      callback({
-        params: {
-          id: transport.id,
-          iceParameters: transport.iceParameters,
-          iceCandidates: transport.iceCandidates,
-          dtlsParameters: transport.dtlsParameters,
-        },
-      });
-    });
-
-    socket.on("getProducers", async (callback) => {
-      //return all producer transports
-      const producers = await sfuClient.getProducersListForSocket(socket.id);
-      // return the producer list back to the client
-      callback(producers.map((producer) => producer.id));
-    });
-
-    // see client's socket.emit('transport-connect', ...)
-    socket.on("transport-connect", async ({ dtlsParameters }) => {
-      const transportData = await sfuClient.getTransport(socket.id);
-      const transport = transportData.transport;
-      transport.connect({ dtlsParameters });
-    });
-
-    // see client's socket.emit('transport-produce', ...)
-    socket.on(
-      "transport-produce",
-      async ({ kind, rtpParameters, appData }, callback) => {
-        // call produce based on the prameters from the client
-        const producer_id = await sfuClient.transportProduce(
-          socket.id,
-          kind,
-          rtpParameters
-        );
-        const producersCount = await sfuClient.getProducersCount();
-        // Send back to the client the Producer's id
-        callback({
-          id: producer_id,
-          producersExist: producersCount > 1 ? true : false,
-        });
-      }
-    );
-
-    // see client's socket.emit('transport-recv-connect', ...)
-    socket.on(
-      "transport-recv-connect",
-      async ({ dtlsParameters, serverConsumerTransportId }) => {
-        sfuClient.connectConsumerTransport(
-          dtlsParameters,
-          serverConsumerTransportId
-        );
-      }
-    );
+    //   // call callback from the client and send back the rtpCapabilities
+    //   callback({ rtpCapabilities });
+    // });
 
     socket.on("test-producers", async () => {
       const producers = await sfuClient.producerModel.findAll();
@@ -182,66 +126,6 @@ sfuClient.createAndGetWorker().then((worker: Worker) => {
 
     socket.on("mute-audio", async () => {
       // await sfuClient.pauseProducerBySocketId(socket.id);
-    });
-
-    socket.on(
-      "consume",
-      async (
-        { rtpCapabilities, remoteProducerId, serverConsumerTransportId },
-        callback
-      ) => {
-        try {
-          const consumerData = await sfuClient.consume(
-            socket.id,
-            serverConsumerTransportId,
-            rtpCapabilities,
-            remoteProducerId
-          );
-          if (!consumerData) {
-            console.log(
-              "************************ cannot coonsume **************************"
-            );
-            return;
-          }
-          const { consumer, consumerTransport } = consumerData;
-          consumer.on("transportclose", () => {
-            console.log("transport close from consumer");
-          });
-
-          consumer.on("producerclose", () => {
-            console.log("producer of consumer closed");
-            socket.emit("producer-closed", { remoteProducerId });
-            consumerTransport.close();
-            sfuClient.removeTransport(consumerTransport?.id);
-            consumer.close();
-            sfuClient.removeConsumer(consumer.id);
-          });
-
-          // from the consumer extract the following params
-          // to send back to the Client
-          const params = {
-            id: consumer.id,
-            producerId: remoteProducerId,
-            kind: consumer.kind,
-            rtpParameters: consumer.rtpParameters,
-            serverConsumerId: consumer.id,
-          };
-          // send the parameters to the client
-          console.log("before calling consumer callback");
-          callback({ params });
-        } catch (error: any) {
-          console.log(error.message);
-          callback({
-            params: {
-              error: error,
-            },
-          });
-        }
-      }
-    );
-
-    socket.on("consumer-resume", async ({ serverConsumerId }) => {
-      await sfuClient.resumeConsume(serverConsumerId);
     });
   });
 });

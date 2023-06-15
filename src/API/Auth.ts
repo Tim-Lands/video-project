@@ -11,7 +11,7 @@ export const getUserByToken = async ({
         Authorization: `${token}`,
       },
     });
-    return res.data;
+    return res.data.user_details;
   } catch (err: any) {
     console.log('*******************', err, '*********************')
     return undefined;
