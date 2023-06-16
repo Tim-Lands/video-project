@@ -127,6 +127,7 @@ export class SFUClient {
 			...this.peers[socketId],
 			producers: [...this.peers[socketId].producers, producer.id],
 		};
+		console.log('informing consumers')
 		this.informConsumers(roomName, socketId, producer.id);
 
 		console.log("Producer ID: ", producer.id, producer.kind);

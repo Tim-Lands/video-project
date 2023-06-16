@@ -44,6 +44,7 @@ class SocketHandler {
 			this.listen(
 				"createWebRtcTransport",
 				async ({ consumer }, callback) => {
+					console.log("listeneing on the createWebRtcTransport");
 					const transport =
 						await this.sfuClient.createWebRtcTransport(
 							this.socket.id,
@@ -69,7 +70,24 @@ class SocketHandler {
 				// return the producer list back to the client
 				callback(producers.map((producer) => producer.id));
 			});
-
+			this.listen(
+				"transport-produce",
+				async ({ kind, rtpParameters, appData }, callback) => {
+					// call produce based on the prameters from the client
+					const producer_id = await this.sfuClient.transportProduce(
+						this.socket.id,
+						kind,
+						rtpParameters
+					);
+					const producersCount =
+						await this.sfuClient.getProducersCount();
+					// Send back to the client the Producer's id
+					callback({
+						id: producer_id,
+						producersExist: producersCount > 1 ? true : false,
+					});
+				}
+			);
 			// see client's this.socket.emit('transport-connect', ...)
 			this.listen("transport-connect", async ({ dtlsParameters }) => {
 				const transportData = await this.sfuClient.getTransport(
@@ -190,7 +208,6 @@ class SocketHandler {
 		let router1;
 		if (user.is_instructor) {
 			console.log("is instructor");
-			console.log(user);
 			router1 = await this.sfuClient.joinOrCreateRoom(
 				roomName,
 				this.socket.id

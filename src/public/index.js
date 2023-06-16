@@ -92,15 +92,17 @@ const getLocalStream = () => {
 // server side to send/recive media
 const createDevice = async () => {
 	try {
+		console.log("getting mediasoupclient device");
 		device = new mediasoupClient.Device();
-
+		console.log("got mediasoupclient device");
+		console.log(device);
 		// https://mediasoup.org/documentation/v3/mediasoup-client/api/#device-load
 		// Loads the device with RTP capabilities of the Router (server side)
 		await device.load({
 			// see getRtpCapabilities() below
 			routerRtpCapabilities: rtpCapabilities,
 		});
-
+		console.log("device is loaded");
 		// once the device loads, create transport
 		createSendTransport();
 	} catch (error) {
@@ -112,6 +114,7 @@ const createDevice = async () => {
 const createSendTransport = () => {
 	// see server's socket.on('createWebRtcTransport', sender?, ...)
 	// this is a call from Producer, so sender = true
+	console.log("create send transport function");
 	socket.emit("createWebRtcTransport", { consumer: false }, ({ params }) => {
 		// The server sends back params needed
 		// to create Send Transport on the client side
@@ -131,6 +134,7 @@ const createSendTransport = () => {
 			"connect",
 			async ({ dtlsParameters }, callback, errback) => {
 				try {
+					console.log("producerTransport connected");
 					// Signal local DTLS parameters to the server side transport
 					// see server's socket.on('transport-connect', ...)
 					await socket.emit("transport-connect", {
@@ -149,6 +153,7 @@ const createSendTransport = () => {
 			"produce",
 			async (parameters, callback, errback) => {
 				try {
+					console.log("producerTranspoirt produce function");
 					// tell the server to create a Producer
 					// with the following parameters and produce
 					// and expect back a server side producer id
@@ -187,6 +192,7 @@ const connectSendTransport = async () => {
 
 	audioProducer = await producerTransport.produce(audioParams);
 	videoProducer = await producerTransport.produce(videoParams);
+	console.log("connectSendTransport function");
 	audioProducer.on("trackended", () => {
 		// close audio track
 	});
@@ -259,6 +265,7 @@ const signalNewConsumerTransport = async (remoteProducerId) => {
 
 // server informs the client of a new producer just joined
 socket.on("new-producer", ({ producerId }) => {
+	console.log("new producer");
 	signalNewConsumerTransport(producerId);
 });
 const btntest = document.getElementById("testbtn");
@@ -356,9 +363,9 @@ const connectRecvTransport = async (
 socket.on("rtpCapabilities", (data) => {
 	// we assign to local variable and will be used when
 	// loading the client Device (see createDevice above)
-  console.log('recieved rtp ')
+	console.log("recieved rtp ");
 	rtpCapabilities = data.rtpCapabilities;
-  console.log(rtpCapabilities)
+	console.log(rtpCapabilities);
 	// once we have rtpCapabilities from the Router, create Device
 	createDevice();
 });

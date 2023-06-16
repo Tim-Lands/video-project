@@ -12,10 +12,6 @@ const authorizeParticipant = async (
 	if (!user) throw new UnauthorizedError();
 	const sessionDateInfo = await sessionApi.getSessionDateInfo(id);
 	if (sessionDateInfo.instructor_id == user.id) {
-		console.log("*************");
-		console.log(sessionDateInfo);
-		console.log(user);
-    console.log('********')
 		user.is_instructor = true;
 		return user;
 	} else if (sessionDateInfo.enrolled_users_ids.includes(user.id)) {
