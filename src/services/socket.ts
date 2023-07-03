@@ -3,42 +3,55 @@ import { authorizationService } from "./Authorization";
 import { User } from "../resources/responses/meResponse";
 import { SFUClient } from "./sfuClient";
 import { getUserByToken } from "../API/Auth";
+import {
+	RoomResponse,
+	SessionDate,
+} from "../resources/responses/roomResponses";
+import { UnavailableError } from "../errors/Unavailable";
+import { SocketIOConnection } from "./socketIoConnection";
+import { sessionApi } from "../API/Session";
+import { BaseRoomHandler } from "./room/baseRoomHandelr";
+import { getRoomHandler } from "./room/roomFactory";
 
 class SocketHandler {
 	rooms = {};
+	sessionDates: { [key: string]: SessionDate } = {};
+	roomName: string = "";
 	sfuClient: SFUClient;
+	roomHandler: BaseRoomHandler;
 	token: string;
 	socket: Socket;
-	constructor(sfuClient: SFUClient, socket: Socket, token: string) {
+	socketIOConnection: SocketIOConnection;
+	user: User;
+	room: RoomResponse;
+	constructor(
+		sfuClient: SFUClient,
+		socket: Socket,
+		token: string,
+		roomHandler: BaseRoomHandler,
+		roomName: string,
+		user: User,
+		room: RoomResponse
+	) {
 		this.sfuClient = sfuClient;
 		this.socket = socket;
 		this.token = token;
+		this.socketIOConnection = SocketIOConnection.getSocketServer();
+		this.roomHandler = roomHandler;
+		this.roomName = roomName;
+		this.user = user;
+		this.room = room;
 	}
 	async handleConnection() {
 		try {
-			console.log("handling connection");
-
+			const rtpCapabilities = await this.joinOrCreateRoom(
+				this.roomName,
+				this.user
+			);
+			if (!rtpCapabilities) this.socket.disconnect();
+			else this.socket.emit("rtpCapabilities", { rtpCapabilities });
 			this.listen("disconnect", () => {
 				this.onDisconnect();
-			});
-
-			this.listen("join_room", async ({ sessionDateId }, callback) => {
-				// handle user joining a session
-				console.log("rooom name is as following", sessionDateId);
-				const res = await this.authorizeConnection(sessionDateId);
-				const user = res?.user;
-				if (!user) {
-					console.log("unauthorized user");
-					this.socket.disconnect();
-					return;
-				}
-
-				const rtpCapabilities = await this.joinOrCreateRoom(
-					sessionDateId,
-					user
-				);
-				if (!rtpCapabilities) this.socket.disconnect();
-				else this.socket.emit("rtpCapabilities", { rtpCapabilities });
 			});
 
 			this.listen(
@@ -176,6 +189,7 @@ class SocketHandler {
 				await this.sfuClient.resumeConsume(serverConsumerId);
 			});
 		} catch (err: any) {
+			this.socket.disconnect();
 			console.log(err);
 		}
 	}
@@ -192,17 +206,6 @@ class SocketHandler {
 		// remove this.socket from room
 		this.sfuClient.removeSocketFromRoom(roomName, this.socket.id);
 	}
-	async authorizeConnection(sessionDateId: string) {
-		console.log("entered in the authorizeConnection method");
-		if (typeof sessionDateId != "string") return undefined;
-		console.log("before calling authorize participant api");
-		const user = await authorizationService.authorizeParticipant(
-			parseInt(sessionDateId),
-			this.token
-		);
-		console.log("authorize function has been executed successfully");
-		return { user, roomName: sessionDateId };
-	}
 
 	async joinOrCreateRoom(roomName: string, user: User) {
 		let router1;
@@ -212,6 +215,7 @@ class SocketHandler {
 				roomName,
 				this.socket.id
 			);
+			await sessionApi.markStarted(parseInt(roomName), this.token);
 		} else {
 			console.log("not instructor");
 			router1 = await this.sfuClient.joinRoom(roomName, this.socket.id);
@@ -225,8 +229,7 @@ class SocketHandler {
 			producers: [],
 			consumers: [],
 			peerDetails: {
-				name: "",
-				isAdmin: false, // Is this Peer the Admin?
+				...user,
 			},
 		};
 
@@ -235,6 +238,52 @@ class SocketHandler {
 
 		// call callback from the client and send back the rtpCapabilities
 		return rtpCapabilities;
+	}
+
+	async closeRouterOnDurationEnds(session_date_id: string) {
+		const session_date = this.sessionDates[session_date_id];
+		const end_date = new Date(
+			`${session_date.session_date.toISOString().substring(0, 10)}T${
+				session_date.from
+			}`
+		);
+		end_date.setTime(end_date.getTime() + 60 * session_date.duration);
+		const end_date_milliseconds = end_date.getMilliseconds();
+		const current_date_milliseconds = new Date().getMilliseconds();
+		const timeOut = end_date_milliseconds - current_date_milliseconds;
+		setTimeout(
+			() => this.closeRouterAndInformPeers(session_date_id),
+			timeOut
+		);
+	}
+
+	async closeRouterAndInformPeers(roomName: string) {
+		this.socketIOConnection.emitToRoom(roomName, "conference_ended");
+		this.sfuClient.closeRouter(roomName);
+	}
+
+	async muteUserAudio(user_id: number) {
+		if (
+			await this.roomHandler.canMuteUser({
+				user: this.user,
+				userToMuteId: user_id,
+				room: this.room,
+			})
+		) {
+			this.sfuClient.pauseAudioProducerByUserId(String(user_id));
+		}
+	}
+
+	async muteUserVideo(user_id: number) {
+		if (
+			await this.roomHandler.canMuteUser({
+				user: this.user,
+				userToMuteId: user_id,
+				room: this.room,
+			})
+		) {
+			this.sfuClient.pauseVideoProducerByUserId(String(user_id));
+		}
 	}
 
 	async listen(namespace: string, callback: (...args: any[]) => void) {

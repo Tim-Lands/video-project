@@ -11,10 +11,12 @@ import { ConsumerModel } from "../data/models/Consumer";
 import { ProducerModel } from "../data/models/Producer";
 import { TransportModel } from "../data/models/Transport";
 import { RoomModel } from "../data/models/Room";
+import { UserModel } from "../data/models/User";
 export class SFUClient {
 	public worker?: Worker;
 	public peers: any = {};
 	public roomModel: RoomModel = new RoomModel();
+	userModel: UserModel = new UserModel();
 	consumerModel: ConsumerModel = new ConsumerModel();
 	producerModel: ProducerModel = new ProducerModel();
 	transportModel: TransportModel = new TransportModel();
@@ -113,6 +115,18 @@ export class SFUClient {
 			.forEach((producer) => producer.pause());
 	}
 
+	async pauseAudioProducerByUserId(userId: string) {
+		const user = await this.userModel.findUserById(userId);
+		const socket_id = user.socket.id;
+		this.pauseAudioProducerBySocketId(socket_id);
+	}
+
+	async pauseVideoProducerByUserId(userId: string) {
+		const user = await this.userModel.findUserById(userId);
+		const socket_id = user.socket.id;
+		this.pauseVideoProducerBySocketId(socket_id);
+	}
+
 	async transportProduce(socketId: string, kind: any, rtpParameters: any) {
 		const transporterData =
 			await this.transportModel.findBySocketIdWhereNotConsumer(socketId);
@@ -127,7 +141,7 @@ export class SFUClient {
 			...this.peers[socketId],
 			producers: [...this.peers[socketId].producers, producer.id],
 		};
-		console.log('informing consumers')
+		console.log("informing consumers");
 		this.informConsumers(roomName, socketId, producer.id);
 
 		console.log("Producer ID: ", producer.id, producer.kind);
@@ -240,6 +254,20 @@ export class SFUClient {
 			this.roomModel.updateOneByRoomName(roomName, room);
 			return router1;
 		}
+	}
+
+	async closeRouter(roomName: any) {
+		const room = await this.roomModel.findOneByRoomName(roomName);
+		if (room) {
+			const router = room.router;
+			router.close();
+			await this.roomModel.removeRoomByRoomName(roomName);
+		}
+	}
+
+	async findRoomByRoomName(roomName: any) {
+		const room = await this.roomModel.findOneByRoomName(roomName);
+		return room;
 	}
 
 	async createWebRtcTransport(socketId: any, consumer: any) {

@@ -20543,7 +20543,7 @@ const streamSuccess = (stream) => {
 
 const joinRoom = () => {
 	console.log("joining room");
-	socket.emit("join_room", { sessionDateId: roomName });
+	socket.emit("join_room", { roomName, type:"session" });
 };
 
 const getLocalStream = () => {
